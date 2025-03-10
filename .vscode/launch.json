@@ -1,0 +1,35 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run Chatbot (Controller)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/controller/controller.py",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            }
+        },
+        {
+            "name": "Train Model (Trainer)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/trainer/trainer.py",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            }
+        },
+        {
+            "name": "Train Tokenizer (SentencePiece)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/tokenizer/train_sentencepiece.py",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            }
+        }
+    ]
+}
