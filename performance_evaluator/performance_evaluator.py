@@ -1,7 +1,6 @@
 import torch 
 from tqdm import tqdm
 import math
-from transformers import PreTrainedModel  # Detect Hugging Face models
 from transformer.config import device
 from log_output_manager.log_output_manager import LogOutputManager
 from singleton.singleton import Singleton

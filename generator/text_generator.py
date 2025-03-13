@@ -1,9 +1,7 @@
 import torch
 from tokenizer.tokenizer import Tokenizer
 from transformer.model import TransformerModel
-from transformer.config import device
 from typing import List
-
 
 class TextGenerator:
     """

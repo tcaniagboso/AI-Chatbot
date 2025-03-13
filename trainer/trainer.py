@@ -1,5 +1,5 @@
 """
-Trainer module for training the GPTLanguageModel.
+Trainer module for training the TransformerModel.
 
 This integrates:
 - Standard training approach (batch fetching, forward, backward)

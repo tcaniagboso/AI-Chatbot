@@ -2,9 +2,8 @@
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from transformer.layers import Block
-from transformer.config import vocab_size, d_model, n_head, n_layer, block_size, device
+from transformer.config import vocab_size, d_model, n_head, n_layer, block_size
 
 class TransformerModel(nn.Module):
     """A simple decoder-only GPT-like model."""
@@ -22,11 +21,11 @@ class TransformerModel(nn.Module):
     def _init_weights(self, module):
         """Initialize weights with a normal distribution."""
         if isinstance(module, nn.Linear):
-            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+            nn.init.normal_(module.weight, mean=0.0, std=0.02)
             if module.bias is not None:
-                torch.nn.init.zeros_(module.bias)
+                nn.init.zeros_(module.bias)
         elif isinstance(module, nn.Embedding):
-            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+            nn.init.normal_(module.weight, mean=0.0, std=0.02)
 
     def forward(self, idx, targets=None):
         """Forward pass for language modeling.
@@ -57,5 +56,5 @@ class TransformerModel(nn.Module):
             B, T, C = logits.shape
             logits = logits.view(B * T, C)
             targets = targets.view(B * T)
-            loss = torch.nn.functional.cross_entropy(logits, targets)
+            loss = nn.functional.cross_entropy(logits, targets)
             return logits, loss
