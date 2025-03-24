@@ -61,7 +61,7 @@
 
   1. Wikitext-2 (default)
   
-  2. OpenWebText (optional – uncomment in DatasetManager)
+  2. OpenWebText (optional)
 
 **Notes**
 
