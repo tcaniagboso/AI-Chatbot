@@ -28,13 +28,13 @@ class TextGenerator:
         Generates text using the trained Transformer model.
 
         Args:
-            input_ids (list[int]): Initial tokenized input.
+            input_ids (List[int]): Initial tokenized input.
             max_length (int): Maximum tokens to generate.
             decoding_strategy (str): Decoding method ('greedy', 'top_k', 'nucleus').
             temperature (float): Softmax temperature for randomness.
 
         Returns:
-            list[int]: Generated sequence of token IDs.
+            List[int]: Generated sequence of token IDs.
         """
         if not input_ids:
             raise ValueError("Empty input provided to generate_text(). Check your tokenizer.")
@@ -91,9 +91,7 @@ class TextGenerator:
 
         return logits
 
-    def select_next_token(
-        self, logits: torch.Tensor, strategy: str, temperature: float = 0.7, top_k: int = 50, p: float = 0.9
-    ) -> int:
+    def select_next_token(self, logits: torch.Tensor, strategy: str, temperature: float = 0.7, top_k: int = 50, p: float = 0.9) -> int:
         """
         Selects the next token based on the decoding strategy.
 

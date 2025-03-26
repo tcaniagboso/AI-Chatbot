@@ -1,11 +1,11 @@
 from datasets import load_dataset
-from typing import List, Dict, Optional, Union
+from typing import List, Dict, Optional, Tuple
 import random
 
 from singleton.singleton import Singleton
 
 
-class DatasetManager:
+class DatasetManager(Singleton):
     """
     Manages loading and access to different datasets used for training and fine-tuning.
 
@@ -15,21 +15,21 @@ class DatasetManager:
     - QA: Instruction tuning (Alpaca)
     """
 
-    def __init__(self, dataset_name: str = "wikitext", subset: str = "wikitext-2-raw-v1", split_ratios: tuple = (0.8, 0.1, 0.1)):
+    def _init_singleton(self, dataset_name: str = "wikitext", subset: str = "wikitext-2-raw-v1", split_ratios: Tuple[float, float, float] = (0.8, 0.1, 0.1)) -> None:
         """
         Initializes the dataset manager.
 
         Args:
             dataset_name (str): Name of the dataset to load (default: "wikitext").
             subset (str): Subset of the dataset (default: "wikitext-2-raw-v1").
-            split_ratios (tuple): Ratios for splitting dataset if needed (train, validation, test).
+            split_ratios (Tuple): Ratios for splitting dataset if needed (train, validation, test).
         """
         self.dataset: Optional[Dict[str, object]] = None
-        self.dataset_name = dataset_name
-        self.subset = subset
-        self.split_ratios = split_ratios  # Used for OpenWebText
+        self.dataset_name: str = dataset_name
+        self.subset: str = subset
+        self.split_ratios: Tuple[float, float, float] = split_ratios  # Used for OpenWebText
 
-    def load_pretraining_dataset(self, dataset_name: str = None):
+    def load_pretraining_dataset(self, dataset_name: str = None) -> None:
         """
         Loads a dataset for next-word prediction (pretraining task).
 
@@ -52,7 +52,7 @@ class DatasetManager:
             print(f"Error loading dataset {dataset_name}: {e}")
             self.dataset = None
 
-    def load_classification_dataset(self):
+    def load_classification_dataset(self) -> None:
         """Loads the IMDb dataset for sentiment classification."""
         try:
             self.dataset = load_dataset("imdb")
@@ -60,7 +60,7 @@ class DatasetManager:
         except Exception as e:
             print(f"Error loading IMDb dataset: {e}")
 
-    def load_qa_dataset(self):
+    def load_qa_dataset(self) -> None:
         """Loads the Alpaca dataset for instruction tuning & question answering."""
         try:
             self.dataset = load_dataset("tatsu-lab/alpaca")
@@ -118,8 +118,8 @@ class DatasetManager:
             print(f"Dataset does not contain split: {split}")
             return []
 
-        # If OpenWebText, return list of texts directly
-        if isinstance(self.dataset[split], list):  # OpenWebText case
+        # If OpenWebText, return List of texts directly
+        if isinstance(self.dataset[split], List):  # OpenWebText case
             return self.dataset[split]
 
         # If Wikitext, extract "text" field (this was missing before!)
@@ -137,13 +137,3 @@ class DatasetManager:
     def get_test_text(self) -> List[str]:
         """Retrieves test split text samples."""
         return self._get_text_split("test")
-
-
-class SingletonDatasetManager(DatasetManager, Singleton):
-    """
-    Singleton wrapper for DatasetManager to ensure only one instance exists.
-    """
-
-    def _init_singleton(self):
-        """Called once to initialize the singleton instance."""
-        super().__init__()
