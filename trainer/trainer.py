@@ -26,8 +26,8 @@ from transformer.model import TransformerModel
 from transformer.config import batch_size, learning_rate, device, block_size
 from dataset_manager.dataset_manager import DatasetManager
 from tokenizer.tokenizer import Tokenizer
-from log_output_manager.console_output_manager import ConsoleOutputManager
 from log_output_manager.training_metrics_logger import TrainingMetricsLogger
+from log_output_manager.log_output_manager_factory import LogOutputManagerFactory, OutputManagerType
 from performance_evaluator.performance_evaluator import PerformanceEvaluator
 from checkpoint_manager.checkpoint_manager import CheckpointManager
 
@@ -244,9 +244,9 @@ if __name__ == '__main__':
     model = TransformerModel() # Model
 
     evaluator = PerformanceEvaluator() # Perormance Evaluator
-    console_output = ConsoleOutputManager()
+    console_output = LogOutputManagerFactory.create_log_output_manager(output_type=OutputManagerType.CONSOLE)
     csv_output = TrainingMetricsLogger()
-    evaluator.add_observer(console_output) # Set the logger
+    evaluator.add_observer(console_output) # Add observers
     evaluator.add_observer(csv_output)
 
     print (f"Device: {device}") # Print device

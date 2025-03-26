@@ -1,7 +1,7 @@
 from tokenizer.tokenizer import Tokenizer
 from transformer.model import TransformerModel
 from generator.text_generator import TextGenerator
-from generator.decoding_strategy.top_k_decoding import TopKDecoding
+from generator.decoding_strategy.decoding_strategy_factory import DecodingStrategyType, DecodingStrategyFactory
 from transformer.config import device
 from checkpoint_manager.checkpoint_manager import CheckpointManager
 from view.iview import IView
@@ -63,7 +63,7 @@ if __name__ == '__main__':
     tokenizer = Tokenizer()
     model = TransformerModel()
     view = ConsoleView()
-    decoding_strategy = TopKDecoding()
+    decoding_strategy = DecodingStrategyFactory.create_decoding_strategy(decoding_strategy=DecodingStrategyType.GREEDY)
 
     # Load weights from latest checkpoint (if available)
     CheckpointManager(model=model).load_best_model()
