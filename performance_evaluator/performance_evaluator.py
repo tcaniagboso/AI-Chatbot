@@ -1,16 +1,19 @@
 import torch 
 from tqdm import tqdm
 import math
+from torch.utils.data import DataLoader
 from transformer.config import device
-from log_output_manager.log_output_manager import LogOutputManager
+from log_output_manager.observer import Observer
+from log_output_manager.event_enums import EventType, MetricKey
 from singleton.singleton import Singleton
+from typing import List, Dict, Any, Tuple
 
 """
 PerformanceEvaluator handles evaluation metrics (like Perplexity)
 for both custom TransformerModel and Hugging Face GPT-2 models.
 """
 
-class PerformanceEvaluator:
+class PerformanceEvaluator(Singleton):
     """
     Handles evaluation-related tasks such as logging training loss
     and calculating perplexity on a dataset.
@@ -20,42 +23,93 @@ class PerformanceEvaluator:
     - Hugging Face pretrained language models (like GPT-2)
     """
 
-    def __init__(self):
-        """Initializes the evaluator with an optional logger."""
-        self.logger = None
-
-    def set_logger(self, logger: LogOutputManager):
+    def _init_singleton(self) -> None:
         """
-        Sets the logger for the evaluator.
-
-        Args:
-            logger (LogOutputManager): Log manager for logging metrics.
+        Initializes the PerformanceEvaluator with an empty list of observers.
+        
+        This list will be used to notify logging systems or other components 
+        when training metrics are updated.
         """
-        self.logger = logger
+        self.observers: List[Observer] = []
 
-    def log_training_loss(self, epoch: int, step: int, loss: float):
+    def add_observer(self, observer: Observer) -> None:
         """
-        Logs the training loss at regular intervals.
+        Registers an observer to receive logging events.
 
-        Args:
-            epoch (int): Current epoch number.
-            step (int): Current batch/step number within the epoch.
-            loss (float): Current loss value.
+        Parameters
+        ----------
+        observer : Observer
+            An instance of a class implementing the Observer interface.
         """
-        self.logger.log_message(f"[TRAIN] Epoch {epoch} | Step {step} | Loss: {loss:.4f}")
+        self.observers.append(observer)
 
-    def log_validation_loss(self, epoch: int, validation_loss: float):
+    def remove_observer(self, observer: Observer) -> None:
         """
-        Logs the validation loss at regular intervals.
+        Unregisters an observer from receiving logging events.
 
-        Args:
-            epoch (int): Current epoch number.
-            validation_loss (float): Current validation loss value.
+        Parameters
+        ----------
+        observer : Observer
+            The observer instance to remove.
         """
-        self.logger.log_message(f"[VALIDATION] Epoch {epoch} | Validation Loss: {validation_loss:.4f}")
+        self.observers.remove(observer)
+
+    def notify_observers(self, event_type: EventType, data: Dict[MetricKey, Any]) -> None:
+        """
+        Notifies all registered observers of an event.
+
+        Parameters
+        ----------
+        event_type : EventType
+            Type of the event (e.g., "training_loss", "validation_loss").
+        data : dict
+            A dictionary containing the relevant data for the event.
+        """
+        for observer in self.observers:
+            observer.update(event_type, data)
+
+    def log_training_loss(self, epoch: int, step: int, loss: float) -> None:
+        """
+        Logs and notifies observers of training loss.
+
+        Parameters
+        ----------
+        epoch : int
+            The current epoch number.
+        step : int
+            The current step or batch number.
+        loss : float
+            The loss value at this step.
+        """
+        self.notify_observers(EventType.TRAINING_LOSS, {MetricKey.EPOCH: epoch, MetricKey.STEP: step, MetricKey.LOSS: loss})
+
+    def log_validation_loss(self, epoch: int, validation_loss: float) -> None:
+        """
+        Logs and notifies observers of validation loss.
+
+        Parameters
+        ----------
+        epoch : int
+            The current epoch number.
+        validation_loss : float
+            The loss value computed on the validation set.
+        """
+        self.notify_observers(EventType.VALIDATION_LOSS, {MetricKey.EPOCH: epoch, MetricKey.LOSS: validation_loss})
 
 
-    def evaluate_perplexity(self, model, dataloader, is_huggingface_model: bool = False) -> float:
+    def log_training_final_summary(self, total_training_time: float) -> None:
+        """
+        Logs and notifies observers of training final summary.
+
+        Parameters
+        ----------
+        total_training_time : float
+            The total training time in seconds.
+        """
+        self.notify_observers(EventType.FINAL_SUMMARY, {MetricKey.TOTAL_TIME: total_training_time})
+
+
+    def evaluate_perplexity(self, model, dataloader: DataLoader, is_huggingface_model: bool = False) -> float:
         """
         Evaluates the model on a given dataset and calculates perplexity.
 
@@ -70,9 +124,9 @@ class PerformanceEvaluator:
         model.to(device)
         model.eval()
 
-        if self.logger:
-            model_type = "Hugging Face GPT-2" if is_huggingface_model else "Custom Transformer Model"
-            self.logger.log_message(f"Evaluating Perplexity on {model_type}...")
+        model_type = "Hugging Face Model" if is_huggingface_model else "Custom Model"
+
+        self.notify_observers(EventType.EVALUATING_PERPLEXITY, {MetricKey.MODEL: model_type})
 
         total_nll = 0.0
         total_tokens = 0
@@ -111,7 +165,7 @@ class PerformanceEvaluator:
                     else:
                         output = model(chunk)  # Ensure only `input_ids` is passed
 
-                        if isinstance(output, tuple):  
+                        if isinstance(output, Tuple):  
                             logits = output[0]  # Extract logits if model outputs (logits, loss)
                         else:
                             logits = output  # If only logits, use as is
@@ -138,18 +192,6 @@ class PerformanceEvaluator:
         avg_nll = total_nll / total_tokens
         perplexity = math.exp(avg_nll)
 
-        if self.logger:
-            model_type = "Hugging Face Model" if is_huggingface_model else "Custom Model"
-            self.logger.log_message(f"Final Perplexity on Test Set ({model_type}): {perplexity:.4f}")
+        self.notify_observers(EventType.FINAL_PERPLEXITY, {MetricKey.PPL: perplexity, MetricKey.MODEL: model_type})
 
         return perplexity
-
-
-class SingletonPerformanceEvaluator(PerformanceEvaluator, Singleton):
-    """
-    Singleton wrapper for PerformanceEvaluator.
-    """
-
-    def _init_singleton(self):
-        """Ensures proper initialization."""
-        super().__init__()

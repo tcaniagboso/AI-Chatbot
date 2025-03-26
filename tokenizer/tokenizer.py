@@ -2,7 +2,7 @@ import sentencepiece as spm
 from typing import List
 from singleton.singleton import Singleton
 
-class Tokenizer:
+class Tokenizer(Singleton):
     """
     Handles tokenization and detokenization using SentencePiece.
 
@@ -13,15 +13,15 @@ class Tokenizer:
     - Providing special token IDs (EOS, PAD)
     """
 
-    def __init__(self, model_path: str = 'tokenizer/spm_model.model'):
+    def _init_singleton(self, model_path: str = 'tokenizer/spm_model.model'):
         """
         Initializes the Tokenizer.
 
         Args:
             model_path (str): Path to the trained SentencePiece model file.
         """
-        self.sp = spm.SentencePieceProcessor(model_file=model_path)
-        self.vocab_size = self.sp.vocab_size()
+        self.sp: spm.SentencePieceProcessor = spm.SentencePieceProcessor(model_file=model_path)
+        self.vocab_size: int = self.sp.vocab_size()
 
     def encode(self, text: str) -> List[int]:
         """
@@ -65,13 +65,13 @@ class Tokenizer:
         return pieces
         
     @property
-    def eos_token_id(self):
+    def eos_token_id(self) -> int:
         """Returns the ID of the End-of-Sequence token, ensuring it's valid."""
         eos_id = self.sp.eos_id()
         return eos_id if eos_id >= 0 else None
 
     @property
-    def pad_token_id(self):
+    def pad_token_id(self) -> int:
         """Returns the ID of the padding token, ensuring it's valid."""
         pad_id = self.sp.pad_id()
         return pad_id if pad_id >= 0 else None
@@ -79,16 +79,3 @@ class Tokenizer:
     def get_vocab_size(self) -> int:
         """Returns the vocabulary size of the SentencePiece model."""
         return self.sp.vocab_size()
-        
-
-class SingletonTokenizer(Tokenizer, Singleton):
-    """
-    Singleton wrapper for the Tokenizer.
-
-    Ensures that only one instance of the Tokenizer exists in memory,
-    preventing unnecessary reloading of the SentencePiece model.
-    """
-
-    def _init_singleton(self):
-        """Called only once when the singleton is first created."""
-        super().__init__()

@@ -12,7 +12,7 @@ class ConsoleOutputManager(LogOutputManager):
     Logs messages directly to the console.
     """
 
-    def log_message(self, message: str):
+    def log_message(self, message: str) -> None:
         """
         Prints a log message to the console.
 

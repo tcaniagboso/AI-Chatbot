@@ -1,10 +1,8 @@
-from tokenizer.tokenizer import Tokenizer, SingletonTokenizer
+from tokenizer.tokenizer import Tokenizer
 from transformer.model import TransformerModel
 from generator.text_generator import TextGenerator
 from transformer.config import device
-
-import os
-import torch
+from checkpoint_manager.checkpoint_manager import CheckpointManager
 
 class Controller:
     """
@@ -33,11 +31,11 @@ class Controller:
             tokenizer (Tokenizer): The tokenizer used for encoding and decoding text.
             generator (TextGenerator): The text generator that predicts the next words.
         """
-        self.model = model
-        self.tokenizer = tokenizer
-        self.generator = generator
+        self.model: TransformerModel = model
+        self.tokenizer: Tokenizer = tokenizer
+        self.generator: TextGenerator = generator
     
-    def run(self):
+    def run(self) -> None:
         """
         Starts an interactive text generation session.
 
@@ -54,29 +52,17 @@ class Controller:
             print(f"Model Response: {output}")
             print()
 
-def load_best_model(model, best_path = 'checkpoints/best/best_model.pt'):
-        """
-        Loads the best (lowest validation loss) model for evaluation or deployment.
-        """
-        if os.path.exists(best_path):
-            checkpoint = torch.load(best_path)
-            model.load_state_dict(checkpoint['model_state_dict'])
-            print(f"Loaded best model from {best_path}")
-        else:
-            print("No best model found. You may need to train first.")
-
-
 if __name__ == '__main__':
     """
     Initializes the model, tokenizer, and generator, and starts the interactive text generation session.
     """
     print(f"Device: {device}")
-    tokenizer = SingletonTokenizer()
+    tokenizer = Tokenizer()
 
     model = TransformerModel()
 
     # Load weights from latest checkpoint (if available)
-    load_best_model(model)
+    CheckpointManager(model=model).load_best_model()
 
     generator = TextGenerator(model, tokenizer)
     controller = Controller(model, tokenizer, generator)

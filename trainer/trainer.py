@@ -10,23 +10,26 @@ This integrates:
 """
 
 import os
-import re
 import time
 import random
 import numpy as np
 import torch
 import torch.nn.functional as F
+from torch.optim import Optimizer
 from torch.optim import AdamW
+from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader, TensorDataset
 from transformers import get_cosine_schedule_with_warmup
+from typing import Optional, List
 
 from transformer.model import TransformerModel
 from transformer.config import batch_size, learning_rate, device, block_size
-from dataset_manager.dataset_manager import SingletonDatasetManager
-from tokenizer.tokenizer import SingletonTokenizer
+from dataset_manager.dataset_manager import DatasetManager
+from tokenizer.tokenizer import Tokenizer
 from log_output_manager.console_output_manager import ConsoleOutputManager
 from log_output_manager.training_metrics_logger import TrainingMetricsLogger
-from performance_evaluator.performance_evaluator import SingletonPerformanceEvaluator
+from performance_evaluator.performance_evaluator import PerformanceEvaluator
+from checkpoint_manager.checkpoint_manager import CheckpointManager
 
 # Set a fixed seed for reproducibility
 torch.manual_seed(42)
@@ -43,40 +46,70 @@ if torch.cuda.is_available():
 print("Random seed set for reproducibility.")
 
 class Trainer:
-    def __init__(self, model: TransformerModel, tokenizer: SingletonTokenizer, dataset_manager: SingletonDatasetManager, evaluator: SingletonPerformanceEvaluator):
+    """
+    Handles training of the Transformer model.
+
+    Responsibilities:
+    - DataLoader creation
+    - Model training and validation
+    - Logging metrics
+    - Checkpoint saving/loading via CheckpointManager
+    - Scheduler initialization
+
+    Attributes:
+        model (TransformerModel): The Transformer model to be trained.
+        tokenizer (Tokenizer): Tokenizer used for encoding text samples.
+        dataset_manager (DatasetManager): Provides access to training, validation, and test datasets.
+        evaluator (PerformanceEvaluator): Logs metrics using the Observer pattern.
+        optimizer (AdamW): Optimizer used for training.
+        scheduler: Cosine learning rate scheduler with warmup.
+        checkpoint_manager (CheckpointManager): Manages saving and loading checkpoints.
+        current_epoch (int): Epoch to resume from.
+        current_step (int): Step to resume from within the epoch.
+        best_val_loss (float): Lowest recorded validation loss.
+    """
+
+    def __init__(self, 
+                 model: TransformerModel, 
+                 tokenizer: Tokenizer, 
+                 dataset_manager: DatasetManager, 
+                 evaluator: PerformanceEvaluator):
         """
-        Initializes the Trainer.
+        Initializes the Trainer with model, tokenizer, dataset manager, and evaluator.
 
         Args:
-            model (TransformerModel): The Transformer model.
-            tokenizer (SingletonTokenizer): Tokenizer for encoding.
-            dataset_manager (DatasetManager): Manages dataset loading.
-            evaluator (PerformanceEvaluator): Handles logging & evaluation.
+            model (TransformerModel): Model to train.
+            tokenizer (Tokenizer): Tokenizer instance.
+            dataset_manager (DatasetManager): Manages datasets.
+            evaluator (PerformanceEvaluator): Observer for logging.
         """
-        self.model = model.to(device)
-        self.tokenizer = tokenizer
-        self.dataset_manager = dataset_manager
-        self.evaluator = evaluator
-        self.metrics_logger = TrainingMetricsLogger()
-
-        self.optimizer = AdamW(model.parameters(), lr=learning_rate, weight_decay=0.01)
-
-        self.current_epoch = 0
-        self.current_step = 0
-        self.best_val_loss = float('inf')
+        self.model: TransformerModel = model.to(device)
+        self.tokenizer: Tokenizer = tokenizer
+        self.dataset_manager: DatasetManager = dataset_manager
+        self.evaluator: PerformanceEvaluator = evaluator
+        self.optimizer: Optimizer = AdamW(model.parameters(), lr=learning_rate, weight_decay=0.01)
+        self.scheduler: Optional[_LRScheduler] = None
+        self.current_epoch: int = 0
+        self.current_step: int = 0
+        self.best_val_loss: float = float('inf')
+        self.checkpoint_manager: CheckpointManager = CheckpointManager(self.model, self.optimizer, None)
 
         self.dataset_manager.load_pretraining_dataset()
-
+    
         os.makedirs('checkpoints', exist_ok=True)
         os.makedirs('checkpoints/latest', exist_ok=True)
         os.makedirs('checkpoints/best', exist_ok=True)
         os.makedirs('logs', exist_ok=True)
 
 
-    def train(self, num_epochs=3):
+    def train(self, num_epochs: int = 3) -> None:
         """
-        Trains the Transformer model for the specified number of epochs.
+        Trains the model over a specified number of epochs.
+
+        Args:
+            num_epochs (int): Total number of training epochs.
         """
+
         train_loader = self.create_dataloader(self.dataset_manager.get_training_text())
         val_loader = self.create_dataloader(self.dataset_manager.get_validation_text(), shuffle=False)
 
@@ -87,7 +120,8 @@ class Trainer:
             self.optimizer, num_warmup_steps=num_warmup_steps, num_training_steps=num_training_steps
         )
 
-        self.load_latest_checkpoint()
+        self.checkpoint_manager.set_scheduler(self.scheduler)
+        self.current_epoch, self.current_step = self.checkpoint_manager.load_latest_checkpoint()
 
         start_time = time.time()
         for epoch in range(self.current_epoch, num_epochs):
@@ -96,24 +130,24 @@ class Trainer:
             # Validate & log
             val_loss = self.evaluate_validation_loss(val_loader)
             self.evaluator.log_validation_loss(epoch, val_loss)
-            self.metrics_logger.log_validation_loss(epoch, val_loss)
 
             if val_loss < self.best_val_loss:
                 self.best_val_loss = val_loss
-                self.save_best_model()
-
-            elapsed_time = time.time() - start_time
-            remaining_time = (elapsed_time / (epoch + 1)) * (num_epochs - (epoch + 1))
-            self.evaluator.logger.log_message(f"Estimated time remaining: {remaining_time:.2f} seconds")
+                print(f'New Best Validation Loss: {self.best_val_loss:.4f}')
+                self.checkpoint_manager.save_best_model()
 
         total_training_time = time.time() - start_time
-        self.evaluator.logger.log_message(f"Training completed in {total_training_time:.2f} seconds")
-        self.metrics_logger.log_final_summary(total_training_time)
+        self.evaluator.log_training_final_summary(total_training_time)
 
-    def train_one_epoch(self, epoch, dataloader):
+    def train_one_epoch(self, epoch: int, dataloader: DataLoader) -> None:
         """
-        Trains the model for one epoch.
+        Trains the model for a single epoch.
+
+        Args:
+            epoch (int): Current epoch index.
+            dataloader (DataLoader): Dataloader providing training data.
         """
+
         self.model.train()
 
         for step, (xb, yb) in enumerate(dataloader):
@@ -123,7 +157,7 @@ class Trainer:
             xb, yb = xb.to(device), yb.to(device)
 
             self.optimizer.zero_grad()
-            logits, loss = self.model(xb, yb)
+            _, loss = self.model(xb, yb)
 
             loss.backward()
             self.optimizer.step()
@@ -131,15 +165,21 @@ class Trainer:
 
             if step % 10 == 0:
                 self.evaluator.log_training_loss(epoch, step, loss.item())
-                self.metrics_logger.log_training_loss(epoch, step, loss.item())
 
             if step % 100 == 0:
-                self.save_latest_checkpoint(epoch, step)
+                self.checkpoint_manager.save_latest_checkpoint(epoch, step)
 
         self.current_step = 0
-    def evaluate_validation_loss(self, dataloader):
+
+    def evaluate_validation_loss(self, dataloader: DataLoader) -> float:
         """
-        Computes validation loss.
+        Computes validation loss on a given dataset.
+
+        Args:
+            dataloader (DataLoader): Dataloader with validation data.
+
+        Returns:
+            float: Average validation loss over the entire dataset.
         """
         self.model.eval()
         total_loss = 0
@@ -148,24 +188,25 @@ class Trainer:
         with torch.no_grad():
             for xb, yb in dataloader:
                 xb, yb = xb.to(device), yb.to(device)
-                logits, loss = self.model(xb, yb)
+                _, loss = self.model(xb, yb)
 
                 total_loss += loss.item() * yb.numel()
                 total_tokens += yb.numel()
 
         return total_loss / total_tokens
     
-    def create_dataloader(self, text_samples, shuffle=True):
+    def create_dataloader(self, text_samples: List[str], shuffle: bool =True) -> DataLoader:
         """
-        Creates a DataLoader for next-token prediction.
+        Tokenizes input text and prepares a PyTorch DataLoader.
 
         Args:
-            text_samples (List[str]): List of text samples.
+            text_samples (List[str]): List of raw text samples.
             shuffle (bool): Whether to shuffle the dataset.
 
         Returns:
-            DataLoader: Efficient PyTorch DataLoader.
+            DataLoader: Batched dataset of (input, target) token pairs.
         """
+
         tokenized_data = [self.tokenizer.encode(text)[:block_size] for text in text_samples]
 
         # Convert to PyTorch tensor and create (input, target) pairs
@@ -196,92 +237,17 @@ class Trainer:
         dataset = TensorDataset(input_tensors, target_tensors)
         return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
 
-    
-
-    def save_latest_checkpoint(self, epoch, step, checkpoint_path = "checkpoints/latest"):
-        """
-        Saves only the latest checkpoint, overwriting old ones to save storage.
-        """
-
-        # Remove old checkpoints
-        for f in os.listdir(checkpoint_path):
-            os.remove(os.path.join(checkpoint_path, f))
-
-        checkpoint_filename = f"model_epoch{epoch}_step{step}.pt"
-        checkpoint = {
-            'epoch': epoch,
-            'step': step,
-            'model_state_dict': self.model.state_dict(),
-            'optimizer_state_dict': self.optimizer.state_dict(),
-            'scheduler_state_dict': self.scheduler.state_dict()
-        }
-        
-        path = os.path.join(checkpoint_path, checkpoint_filename)
-        torch.save(checkpoint, path)
-        print(f"Saved latest checkpoint: {path}")
-   
-    def load_latest_checkpoint(self, checkpoint_path = "checkpoints/latest"):
-        """
-        Loads the latest checkpoint if available.
-        """
-        def parse_checkpoint_filename(filename):
-            match = re.match(r'model_epoch(\d+)_step(\d+)\.pt', filename)
-            return int(match.group(1)), int(match.group(2))
-        
-
-        # Find latest checkpoint
-        checkpoints = [f for f in os.listdir(checkpoint_path) if f.endswith('.pt')]
-        if not checkpoints:
-            print("No latest checkpoint found, starting fresh.")
-            return
-
-        latest_checkpoint = sorted(checkpoints)[-1]
-        epoch, step = parse_checkpoint_filename(latest_checkpoint)
-        self.load_checkpoint(os.path.join(checkpoint_path, latest_checkpoint), epoch, step)
-
-    def load_checkpoint(self, path, epoch, step):
-        """
-        Loads a saved checkpoint.
-        """
-        checkpoint = torch.load(path)
-        self.model.load_state_dict(checkpoint['model_state_dict'])
-        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
-
-        self.current_epoch = epoch
-        self.current_step = step + 1
-        print(f"Resumed from {path} (epoch {epoch}, step {step})")
-
-    def save_best_model(self, best_path = 'checkpoints/best/best_model.pt'):
-        """
-        Save current best model (based on validation loss).
-        """
-        checkpoint = {
-            'model_state_dict': self.model.state_dict()
-        }
-        torch.save(checkpoint, best_path)
-        print("Saved best model (lowest validation loss).")
-
-    def load_best_model(self, best_path = 'checkpoints/best/best_model.pt'):
-        """
-        Loads the best model for evaluation.
-        """
-        if os.path.exists(best_path):
-            checkpoint = torch.load(best_path)
-            self.model.load_state_dict(checkpoint['model_state_dict'])
-            print(f"Loaded best model from {best_path}")
-        else:
-            print("No best model found. Train first.")
-
-
 if __name__ == '__main__':
-    tokenizer = SingletonTokenizer() # Tokenizer
-    dataset_manager = SingletonDatasetManager() # DatasetManager
+    tokenizer = Tokenizer() # Tokenizer
+    dataset_manager = DatasetManager() # DatasetManager
 
     model = TransformerModel() # Model
 
-    evaluator = SingletonPerformanceEvaluator() # Perormance Evaluator
-    evaluator.set_logger(ConsoleOutputManager()) # Set the logger
+    evaluator = PerformanceEvaluator() # Perormance Evaluator
+    console_output = ConsoleOutputManager()
+    csv_output = TrainingMetricsLogger()
+    evaluator.add_observer(console_output) # Set the logger
+    evaluator.add_observer(csv_output)
 
     print (f"Device: {device}") # Print device
 
@@ -290,8 +256,7 @@ if __name__ == '__main__':
     trainer.train(num_epochs=3)
 
     # Load best Model
-    trainer.load_best_model()
+    trainer.checkpoint_manager.load_best_model()
 
     test_loader = trainer.create_dataloader(dataset_manager.get_test_text(), False) # Create test dataloader
-
     perplexity = evaluator.evaluate_perplexity(model, test_loader, False) # Evaluate Perplexity

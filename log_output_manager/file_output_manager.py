@@ -25,10 +25,10 @@ class FileOutputManager(LogOutputManager):
         Args:
             log_file (str): Path to the log file.
         """
-        self.log_file = log_file
+        self.log_file: str = log_file
         os.makedirs(os.path.dirname(self.log_file), exist_ok=True)
 
-    def log_message(self, message: str):
+    def log_message(self, message: str) -> None:
         """
         Writes a log message to the file.
 
