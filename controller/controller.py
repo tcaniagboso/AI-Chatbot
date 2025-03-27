@@ -1,8 +1,11 @@
 from tokenizer.tokenizer import Tokenizer
 from transformer.model import TransformerModel
 from generator.text_generator import TextGenerator
+from generator.decoding_strategy.top_k_decoding import TopKDecoding
 from transformer.config import device
 from checkpoint_manager.checkpoint_manager import CheckpointManager
+from view.iview import IView
+from view.console_view import ConsoleView
 
 class Controller:
     """
@@ -17,12 +20,13 @@ class Controller:
         model (TransformerModel): The trained Transformer model for next-word prediction.
         tokenizer (Tokenizer): The tokenizer used for encoding user input and decoding model output.
         generator (TextGenerator): The text generation engine that generates text based on input.
+        view (IView): The view the user interacts with.
 
     Methods:
         run():
             Starts an interactive loop where the user inputs a text prompt, and the model generates a response.
     """
-    def __init__(self, model : TransformerModel, tokenizer : Tokenizer, generator : TextGenerator):
+    def __init__(self, model : TransformerModel, tokenizer : Tokenizer, generator : TextGenerator, view: IView):
         """
         Initializes the Controller with a trained model, tokenizer, and text generator.
 
@@ -30,10 +34,12 @@ class Controller:
             model (TransformerModel): The trained Transformer model.
             tokenizer (Tokenizer): The tokenizer used for encoding and decoding text.
             generator (TextGenerator): The text generator that predicts the next words.
+            view (IView): The view the user interacts with.
         """
         self.model: TransformerModel = model
         self.tokenizer: Tokenizer = tokenizer
         self.generator: TextGenerator = generator
+        self.view: IView = view
     
     def run(self) -> None:
         """
@@ -43,14 +49,11 @@ class Controller:
         The model generates a response using the chosen decoding strategy, and the result is displayed.
         """
         while True:
-            user_input = input("User Input: ")
-
+            user_input = self.view.get_user_input()
             input_ids = self.tokenizer.encode(user_input)
-            output_ids = self.generator.generate_text(input_ids, decoding_strategy='greedy', temperature=0.8)
+            output_ids = self.generator.generate_text(input_ids)
             output = self.tokenizer.decode(output_ids)
-
-            print(f"Model Response: {output}")
-            print()
+            self.view.display_output(output)
 
 if __name__ == '__main__':
     """
@@ -58,12 +61,13 @@ if __name__ == '__main__':
     """
     print(f"Device: {device}")
     tokenizer = Tokenizer()
-
     model = TransformerModel()
+    view = ConsoleView()
+    decoding_strategy = TopKDecoding()
 
     # Load weights from latest checkpoint (if available)
     CheckpointManager(model=model).load_best_model()
 
-    generator = TextGenerator(model, tokenizer)
-    controller = Controller(model, tokenizer, generator)
+    generator = TextGenerator(model, tokenizer, decoding_strategy)
+    controller = Controller(model, tokenizer, generator, view)
     controller.run()
