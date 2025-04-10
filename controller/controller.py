@@ -40,7 +40,26 @@ class Controller:
         self.tokenizer: Tokenizer = tokenizer
         self.generator: TextGenerator = generator
         self.view: IView = view
-    
+
+    def predict_next_words(self, user_input: str) -> str:
+        """
+        Generates a continuation of the input text using the underlying language model.
+
+        This method tokenizes the user's input, uses the TextGenerator to produce
+        a continuation based on the selected decoding strategy, and returns the
+        decoded string output.
+
+        Args:
+            user_input (str): The initial text prompt provided by the user.
+
+        Returns:
+            str: The generated text continuation.
+        """
+        input_ids = self.tokenizer.encode(user_input)
+        output_ids = self.generator.generate_text(input_ids)
+        output = self.tokenizer.decode(output_ids)
+        return output
+
     def run(self) -> None:
         """
         Starts an interactive text generation session.
@@ -50,9 +69,7 @@ class Controller:
         """
         while True:
             user_input = self.view.get_user_input()
-            input_ids = self.tokenizer.encode(user_input)
-            output_ids = self.generator.generate_text(input_ids)
-            output = self.tokenizer.decode(output_ids)
+            output = self.predict_next_words(user_input)
             self.view.display_output(output)
 
 if __name__ == '__main__':
