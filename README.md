@@ -72,37 +72,40 @@
   3. Hyperparameters are easily tunable in `transformer/config.py`.
   
   4. Text generation is done using next-word prediction, not factual answering. For QA-style and Classification-style tasks, fine-tuning is required.
+     
 
 **Running the API & Tests**
 
-  **Note:**  Ensure the model has been trained and the tokenizer model (`spm_model.model`) exists before running the API.
-
-  1. **Run the API**
-    ```
-    uvicorn app:app --reload
-    ```
-
-    1. Acess Swagger UI at:
-      http://127.0.0.1:8000/docs
-
-    2. Example request using `curl` (Linux/Mac):
-      ```
-      curl -X POST "http://127.0.0.1:8000/generate" \
-        -H "Content-Type: application/json" \
-        -d "{\"prompt\": \"Once upon a time\"}"
-      ```
-
-    3. Example request using PowerShell:
-      ```
-      Invoke-RestMethod -Uri "http://127.0.0.1:8000/generate" `
-      -Method Post `
-      -Headers @{ "Content-Type" = "application/json" } `
-      -Body '{"prompt": "Once upon a time"}'
-      ```
+  **Note:** Ensure the model has been trained and the tokenizer model (`spm_model.model`) exists before running the API.
   
-  2. **Run Unit Tests**
-    ```
-    pytest tests/ -v
-    ```
-    This runs all the unit and integration tests defined under the `tests/` folder to verify the tokenizer, model, trainer, text generator, 
-    and controller.
+  **Run the API**
+     
+  `uvicorn app:app --reload`
+
+  Acess Swagger UI at:
+  
+  `http://127.0.0.1:8000/docs`
+    
+  Example request using `curl` (Linux/Mac):
+
+  ```
+  curl -X POST "http://127.0.0.1:8000/generate" \
+  -H "Content-Type: application/json" \
+  -d "{\"prompt\": \"Once upon a time\"}"    
+  ```
+
+  Example request using PowerShell:
+  
+  ```
+  Invoke-RestMethod -Uri "http://127.0.0.1:8000/generate" `
+  -Method Post `
+  -Headers @{ "Content-Type" = "application/json" } `
+  -Body '{"prompt": "Once upon a time"}'
+  ```
+  
+**Run Unit Tests**
+      
+  `pytest tests/ -v`
+
+  This runs all the unit and integration tests defined under the `tests/` folder to verify the tokenizer, model, trainer, text generator, 
+  and controller.
