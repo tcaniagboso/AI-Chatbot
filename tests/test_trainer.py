@@ -21,12 +21,10 @@ from transformer.model import TransformerModel
 from trainer.trainer import Trainer
 from performance_evaluator.performance_evaluator import PerformanceEvaluator
 
-
 @pytest.fixture(scope="module")
 def tokenizer():
     """Fixture to provide a singleton tokenizer."""
     return Tokenizer()
-
 
 @pytest.fixture(scope="module")
 def dataset_manager():
@@ -35,24 +33,20 @@ def dataset_manager():
     manager.load_pretraining_dataset()
     return manager
 
-
 @pytest.fixture()
 def model():
     """Fixture to provide a fresh model instance."""
     return TransformerModel()
-
 
 @pytest.fixture()
 def evaluator():
     """Fixture to provide a performance evaluator."""
     return PerformanceEvaluator()
 
-
 @pytest.fixture()
 def trainer(model, tokenizer, dataset_manager, evaluator):
     """Fixture to construct the Trainer."""
     return Trainer(model, tokenizer, dataset_manager, evaluator)
-
 
 def test_create_dataloader_shapes(trainer):
     """
@@ -63,7 +57,6 @@ def test_create_dataloader_shapes(trainer):
     for xb, yb in loader:
         assert xb.shape == yb.shape
         break
-
 
 def test_checkpoint_saves_and_loads(tmp_path, trainer):
     """
@@ -80,7 +73,6 @@ def test_checkpoint_saves_and_loads(tmp_path, trainer):
 
     assert epoch == 3
     assert step == 51  # Step is incremented after load
-
 
 def test_trainer_logs_to_evaluator(tokenizer, dataset_manager):
     """
@@ -101,7 +93,6 @@ def test_trainer_logs_to_evaluator(tokenizer, dataset_manager):
 
     evaluator.log_training_loss.assert_called()
 
-
 def test_evaluate_validation_loss_runs(trainer):
     """
     Test that evaluate_validation_loss runs and returns a non-negative float.
@@ -111,7 +102,6 @@ def test_evaluate_validation_loss_runs(trainer):
 
     assert isinstance(val_loss, float)
     assert val_loss >= 0
-
 
 def test_scheduler_is_initialized(trainer):
     """
@@ -128,7 +118,6 @@ def test_scheduler_is_initialized(trainer):
 
     assert trainer.scheduler.get_last_lr() is not None
 
-
 class MockModel(TransformerModel):
     """
     A mock TransformerModel that generates dummy logits and loss for training tests.
@@ -140,7 +129,6 @@ class MockModel(TransformerModel):
         targets = torch.randint(0, self.lm_head.out_features, x.shape, device=device)
         loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))
         return logits, loss
-
 
 def test_train_one_epoch_with_mock_model(tokenizer, dataset_manager):
     """

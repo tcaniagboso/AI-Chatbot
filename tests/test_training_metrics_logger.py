@@ -11,12 +11,10 @@ import os
 from log_output_manager.training_metrics_logger import TrainingMetricsLogger
 from log_output_manager.event_enums import EventType, MetricKey
 
-
 def read_csv(filepath):
     """Helper function to read a CSV file as a list of rows."""
     with open(filepath, newline='') as f:
         return list(csv.reader(f))
-
 
 def test_log_training_loss_creates_and_writes(tmp_path):
     """
@@ -38,7 +36,6 @@ def test_log_training_loss_creates_and_writes(tmp_path):
     assert rows[1][1] == '5'
     assert rows[1][2] == '0.789'
 
-
 def test_log_validation_loss_appends(tmp_path):
     """
     Test that log_validation_loss appends a row to validation CSV.
@@ -55,7 +52,6 @@ def test_log_validation_loss_appends(tmp_path):
     rows = read_csv(path)
     assert rows[0] == ['epoch', 'Validation Loss']
     assert rows[1] == ['3', '1.456']
-
 
 def test_log_perplexity_writes_correctly(tmp_path):
     """
@@ -74,7 +70,6 @@ def test_log_perplexity_writes_correctly(tmp_path):
     assert rows[0] == ['Model Type', 'Perplexity']
     assert rows[1] == ['Custom Model', '12.34']
 
-
 def test_log_final_summary_appends_training_time(tmp_path):
     """
     Test that log_final_summary writes training completion and time.
@@ -91,7 +86,6 @@ def test_log_final_summary_appends_training_time(tmp_path):
     rows = read_csv(path)
     assert ['Training Completed', '', '', ''] in rows
     assert ['Total Training Time (seconds)', '123.45', '', ''] in rows
-
 
 def test_update_dispatches_all_event_types(tmp_path):
     """

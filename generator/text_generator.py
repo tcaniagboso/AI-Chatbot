@@ -72,7 +72,6 @@ class TextGenerator:
 
         return input_ids
 
-
     def apply_repetition_penalty(self, logits: torch.Tensor, input_ids: List[int], penalty: float = 1.2) -> torch.Tensor:
         """
         Reduces probability of repeating the same tokens.

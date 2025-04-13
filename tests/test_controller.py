@@ -14,7 +14,6 @@ from transformer.model import TransformerModel
 from generator.text_generator import TextGenerator
 from generator.decoding_strategy.decoding_strategy_factory import DecodingStrategyFactory, DecodingStrategyType
 
-
 @pytest.fixture
 def controller_setup():
     """Fixture to set up the Controller with mocks and dependencies."""
@@ -28,7 +27,6 @@ def controller_setup():
     mock_view = MagicMock()
     controller = Controller(model, tokenizer, generator, mock_view)
     return controller, tokenizer, generator, mock_view
-
 
 def test_controller_processes_input_and_outputs_response(controller_setup):
     """

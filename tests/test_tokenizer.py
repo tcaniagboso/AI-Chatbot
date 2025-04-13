@@ -14,7 +14,6 @@ def tokenizer():
     """
     return Tokenizer()
 
-
 def test_tokenizer_round_trip(tokenizer):
     """
     Test that encoding and decoding a string results in similar output.
@@ -34,7 +33,6 @@ def test_tokenizer_round_trip(tokenizer):
     assert isinstance(decoded, str)
     assert "hello" in decoded.lower() or "world" in decoded.lower()  # SentencePiece may paraphrase
 
-
 def test_tokenizer_padding(tokenizer):
     """
     Test that the tokenizer returns a valid list of token IDs within vocabulary bounds.
@@ -47,7 +45,6 @@ def test_tokenizer_padding(tokenizer):
     assert isinstance(encoded, list)
     assert len(encoded) > 0
     assert max(encoded) < tokenizer.get_vocab_size()
-
 
 def test_special_tokens(tokenizer):
     """

@@ -101,7 +101,6 @@ class Trainer:
         os.makedirs('checkpoints/best', exist_ok=True)
         os.makedirs('logs', exist_ok=True)
 
-
     def train(self, num_epochs: int = 3) -> None:
         """
         Trains the model over a specified number of epochs.

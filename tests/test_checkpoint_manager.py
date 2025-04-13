@@ -13,7 +13,6 @@ from transformers import get_cosine_schedule_with_warmup
 from checkpoint_manager.checkpoint_manager import CheckpointManager
 from transformer.model import TransformerModel
 
-
 def test_save_and_load_latest_checkpoint(tmp_path):
     """
     Test that a checkpoint can be saved and then loaded correctly.
@@ -31,7 +30,6 @@ def test_save_and_load_latest_checkpoint(tmp_path):
     loaded_epoch, loaded_step = manager.load_latest_checkpoint(str(checkpoint_dir))
     assert loaded_epoch == 2
     assert loaded_step == 11  # step + 1
-
 
 def test_save_and_load_best_model(tmp_path):
     """
@@ -53,7 +51,6 @@ def test_save_and_load_best_model(tmp_path):
     manager.load_best_model(best_path=str(best_model_path))
     assert not all((param == 0).all() for param in model.parameters()), "Model should have non-zero weights after loading"
 
-
 def test_load_latest_checkpoint_when_none_exists(tmp_path):
     """
     Test behavior when no checkpoint file exists in the given directory.
@@ -66,7 +63,6 @@ def test_load_latest_checkpoint_when_none_exists(tmp_path):
     epoch, step = manager.load_latest_checkpoint(str(checkpoint_dir))
     assert epoch is None
     assert step is None
-
 
 def test_load_best_model_when_missing(tmp_path, capsys):
     """

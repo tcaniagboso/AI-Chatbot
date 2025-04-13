@@ -17,7 +17,6 @@ class DecodingStrategyType(Enum):
     TOP_K = "top_k"
     NUCLEUS = "nucleus"
 
-
 class DecodingStrategyFactory:
     """
     Factory class for creating decoding strategy instances.

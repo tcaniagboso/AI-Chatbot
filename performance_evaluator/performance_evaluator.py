@@ -96,7 +96,6 @@ class PerformanceEvaluator(Singleton):
         """
         self.notify_observers(EventType.VALIDATION_LOSS, {MetricKey.EPOCH: epoch, MetricKey.LOSS: validation_loss})
 
-
     def log_training_final_summary(self, total_training_time: float) -> None:
         """
         Logs and notifies observers of training final summary.
@@ -107,7 +106,6 @@ class PerformanceEvaluator(Singleton):
             The total training time in seconds.
         """
         self.notify_observers(EventType.FINAL_SUMMARY, {MetricKey.TOTAL_TIME: total_training_time})
-
 
     def evaluate_perplexity(self, model, dataloader: DataLoader, is_huggingface_model: bool = False) -> float:
         """

@@ -4,7 +4,6 @@ import random
 
 from singleton.singleton import Singleton
 
-
 class DatasetManager(Singleton):
     """
     Manages loading and access to different datasets used for training and fine-tuning.
@@ -124,7 +123,6 @@ class DatasetManager(Singleton):
 
         # If Wikitext, extract "text" field (this was missing before!)
         return [sample["text"] for sample in self.dataset[split] if isinstance(sample, dict) and "text" in sample]
-
 
     def get_training_text(self) -> List[str]:
         """Retrieves training split text samples."""

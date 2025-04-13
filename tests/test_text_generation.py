@@ -34,7 +34,6 @@ def model():
     """
     return TransformerModel()
 
-
 def test_text_generation_runs(tokenizer, model):
     """
     Test that text generation using greedy decoding produces an output sequence
@@ -50,7 +49,6 @@ def test_text_generation_runs(tokenizer, model):
     output = generator.generate_text(prompt, max_length=5)
 
     assert len(output) >= len(prompt)
-
 
 def test_repetition_penalty_changes_logits(tokenizer, model):
     """
@@ -71,7 +69,6 @@ def test_repetition_penalty_changes_logits(tokenizer, model):
     assert modified_logits[1] < logits[1], "Repetition penalty not applied correctly to token 1"
     assert modified_logits[2] < logits[2], "Repetition penalty not applied correctly to token 2"
 
-
 def test_greedy_decoding_runs(tokenizer, model):
     """
     Ensure text is generated correctly using greedy decoding strategy.
@@ -87,7 +84,6 @@ def test_greedy_decoding_runs(tokenizer, model):
 
     assert len(output) >= len(prompt)
 
-
 def test_top_k_decoding_runs(tokenizer, model):
     """
     Ensure text is generated correctly using Top-K decoding.
@@ -102,7 +98,6 @@ def test_top_k_decoding_runs(tokenizer, model):
     output = generator.generate_text(prompt, max_length=5)
 
     assert len(output) >= len(prompt)
-
 
 def test_nucleus_decoding_runs(tokenizer, model):
     """

@@ -14,7 +14,6 @@ class OutputManagerType(Enum):
     FILE = "file"
     CONSOLE = "console"
 
-
 class LogOutputManagerFactory:
     """
     Factory class responsible for creating instances of LogOutputManager subclasses.

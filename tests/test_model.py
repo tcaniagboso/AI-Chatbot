@@ -16,7 +16,6 @@ def tokenizer():
     """
     return Tokenizer()
 
-
 def test_model_output_shape(tokenizer):
     """
     Test that model returns logits with correct shape (B, T, vocab_size) when targets are not provided.
@@ -30,7 +29,6 @@ def test_model_output_shape(tokenizer):
     logits, _ = model(dummy_input)
 
     assert logits.shape == (B, T, tokenizer.get_vocab_size())
-
 
 def test_model_with_targets(tokenizer):
     """
@@ -48,7 +46,6 @@ def test_model_with_targets(tokenizer):
     assert loss is not None
     assert isinstance(loss.item(), float)
 
-
 def test_model_forward_pass_shape():
     """
     Test that the logits shape matches (B, T, vocab_size) and loss is None if no targets are passed.
@@ -63,7 +60,6 @@ def test_model_forward_pass_shape():
 
     assert logits.shape == (B, T, model.lm_head.out_features)
     assert loss is None
-
 
 def test_model_runs_without_targets():
     """
