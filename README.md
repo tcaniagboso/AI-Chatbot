@@ -16,26 +16,26 @@
   
   6. Text generation via CLI with multiple decoding strategies
   
-  8. Logging and checkpointing support
+  7. Logging and checkpointing support
 
 **Getting Started**
   1. **Install Dependencies**
 
      run `pip install -r requirements.txt`
      
-  3. **Train the Tokenizer**
+  2. **Train the Tokenizer**
 
      Make sure you have your dataset ready (e.g., Wikitext-2). To train a tokenizer:
 
      run `python tokenizer/train_sentencepiece.py`
      
-  5. **Train the Transformer Model**
+  3. **Train the Transformer Model**
 
      Update model hyperparameters in config.py if needed. Update the number of epochs in the `trainer/trainer.py`, by default it has been set to 3, then:
 
      run `python trainer/trainer.py`
      
-  7. **Run the Text Generator**
+  4. **Run the Text Generator**
 
      Once the model is trained, generate text interactively:
 
@@ -72,3 +72,37 @@
   3. Hyperparameters are easily tunable in `transformer/config.py`.
   
   4. Text generation is done using next-word prediction, not factual answering. For QA-style and Classification-style tasks, fine-tuning is required.
+
+**Running the API & Tests**
+
+  **Note:**  Ensure the model has been trained and the tokenizer model (`spm_model.model`) exists before running the API.
+
+  1. **Run the API**
+    ```
+    uvicorn app:app --reload
+    ```
+
+    1. Acess Swagger UI at:
+      http://127.0.0.1:8000/docs
+
+    2. Example request using `curl` (Linux/Mac):
+      ```
+      curl -X POST "http://127.0.0.1:8000/generate" \
+        -H "Content-Type: application/json" \
+        -d "{\"prompt\": \"Once upon a time\"}"
+      ```
+
+    3. Example request using PowerShell:
+      ```
+      Invoke-RestMethod -Uri "http://127.0.0.1:8000/generate" `
+      -Method Post `
+      -Headers @{ "Content-Type" = "application/json" } `
+      -Body '{"prompt": "Once upon a time"}'
+      ```
+  
+  2. **Run Unit Tests**
+    ```
+    pytest tests/ -v
+    ```
+    This runs all the unit and integration tests defined under the `tests/` folder to verify the tokenizer, model, trainer, text generator, 
+    and controller.
