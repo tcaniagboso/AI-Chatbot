@@ -26,7 +26,7 @@ class Controller:
         run():
             Starts an interactive loop where the user inputs a text prompt, and the model generates a response.
     """
-    def __init__(self, model : TransformerModel, tokenizer : Tokenizer, generator : TextGenerator, view: IView):
+    def __init__(self, model : TransformerModel, tokenizer : Tokenizer, generator : TextGenerator, view: IView = None):
         """
         Initializes the Controller with a trained model, tokenizer, and text generator.
 
@@ -39,7 +39,7 @@ class Controller:
         self.model: TransformerModel = model
         self.tokenizer: Tokenizer = tokenizer
         self.generator: TextGenerator = generator
-        self.view: IView = view
+        self.view: IView = view if view is not None else ConsoleView()
 
     def predict_next_words(self, user_input: str) -> str:
         """

@@ -8,7 +8,8 @@ __pycache__/
 
 # Ignore Tokenizer vocab and model
 tokenizer/spm_model.model  
-tokenizer/spm_model.vocab  
+tokenizer/spm_model.vocab 
+ 
 # Ignore model checkpoints
 checkpoints/
 
